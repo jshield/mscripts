@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+require "rubygems"
+require "mechanize"
+require "rio"
+baseurl = "http://simpledesktops.com/"
+url = case ARGV[0]
+  when "page" then baseurl+"browse/"+ARGV[1]
+  else baseurl+"browse/"
+end  
+folder = "#{ENV["HOME"]}/pictures/wp/sd/"
+site = Mechanize.new
+walls = site.get(url)
+walls.search("//div[@class='desktop']/a").each do |wp|
+  data = wp[:href].match(/\/(\d*)\/(\d*)\/(\d*)\/(.*)/)
+  file = data[1]+"-"+data[2]+"-"+data[3]+"-"+data[4].downcase
+  loc = folder+file
+  FileUtils.mkdir_p folder
+  unless File.exists?(loc)
+    puts "downloading to " +loc
+    rio(URI.encode(wp[:href])) > rio(loc)
+  end
+end

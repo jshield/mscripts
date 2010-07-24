@@ -1,0 +1,69 @@
+#!/usr/bin/env ruby
+require 'rubygems'
+require 'mechanize'
+require 'rio'
+require 'cgi'
+#require 'htmlentities'
+require 'taglib2'
+require 'librmpd'
+
+class EightBCMusic < Mechanize
+  def process
+#   hdecode = HTMLEntities.new
+    musicdir = "#{ENV["HOME"]}/music/8bc/"
+    url = case ARGV[0]
+      when nil then "http://8bc.org/music/"
+      when "search" then "http://8bc.org/search.php?s=#{ARGV[1]}"
+      else "http://8bc.org/members/#{ARGV[0]}"
+    end
+    puts url
+    get url
+    page.links_with(:href=> %r{/music/}).each do |link|
+      next if link.href =~ %r{/music/_/}
+      next if link.href == "/music/"
+      title = link.text.strip
+      puts title
+#      puts link.href
+      transact do
+        click link
+        #extract author and mkdir
+        author = page.link_with(:text=>"link to the artist's page")
+	unless author == nil
+          name = author.href.match(/members\/(.*)\//)[1].gsub("+","_").downcase        
+        else
+	  name = page.search("//div[@class='col1']/strong").first.text.gsub("+","_").downcase
+	end
+#	name = hdecode.decode name
+#	title = hdecode.decode title
+	filename = title.gsub(".","").gsub(" ","_").downcase        
+        FileUtils.mkdir_p(musicdir+name)  
+        
+        #extract link, create filename and download using rio
+        downlink = page.link_with(:href=>%r{/items/music/})
+        filext = downlink.href.match(/tems\/music\/(.*)\.(.*)/)[2]
+        fileloc = musicdir+name+"/"+filename+"."+filext
+	fileloc = fileloc.gsub("?","")
+        unless FileTest.exist? fileloc
+          puts name + " - " + filename 
+          puts "Downloading to " + fileloc
+          flink = "http://8bc.org"+ downlink.href.to_s
+	  flink = URI.encode(flink).gsub("[","%5B").gsub("]","%5D")
+          puts flink
+	  rio(flink) > rio(fileloc)          
+        end        
+        if filext.downcase == "mp3"
+          mp3 = TagLib2::File.new fileloc
+          mp3.title = title
+          mp3.artist = name
+          mp3.save
+        end
+      end
+    end
+  end
+end
+
+EightBCMusic.new.process
+mpd = MPD.new 'localhost', 6600
+mpd.connect
+mpd.update
+mpd.disconnect
