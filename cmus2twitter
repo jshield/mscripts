@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+require "youtube_it"
+require "twitter"
+require "googl"
+require ENV["XDG_CONFIG_HOME"]+"/shemmesware/config"
+sclient = Googl.client(Conf.gmail, Conf.gpass)
+music = IO.popen('cmus-remote -Q').read.split("\n")
+title = music.grep(/^tag title/).first.sub(/^tag title /,"")
+artist = music.grep(/^tag artist/).first.sub(/^tag artist /,"")
+client = YouTubeIt::Client.new(:dev_key => Conf.dev_key)
+videos = client.videos_by(:query => artist + " - " + title,:page=>1,:per_page=>1)
+video = videos.videos.first
+
+tweet = artist + " - " + title + " #{sclient.shorten(video.player_url).short_url} #cmus2twitter"
+Twitter.configure do |config|
+  config.consumer_key = Conf.tconsumer_key
+  config.consumer_secret = Conf.tconsumer_secret
+  config.oauth_token = Conf.toauth_token
+  config.oauth_token_secret = Conf.toauth_token_secret
+end
+
+# Initialize your Twitter client
+client = Twitter::Client.new
+client.update tweet 
+puts tweet

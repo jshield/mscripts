@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+require "watir-webdriver"
+require "youtube_it"
+require ENV["XDG_CONFIG_HOME"]+"/shemmesware/config"
+music = IO.popen('cmus-remote -Q').read.split("\n")
+title = music.grep(/^tag title/).first.sub(/^tag title /,"")
+artist = music.grep(/^tag artist/).first.sub(/^tag artist /,"")
+client = YouTubeIt::Client.new(:dev_key => dev_key)
+videos = client.videos_by(:query => artist + " - " + title,:page=>1,:per_page=>1)
+video = videos.videos.first
+post = ""
+post << "Artist: " + artist + "\n"
+post << "Title: " + title + "\n"
+post << "best guess at youtube video:\n"
+post << "[video=youtube]#{video.player_url}[/video]\n\n\n"
+post << "This was posted by CMUS2DASH - The Stupid Currently Playing Dashing Poster Bot written by James Alexander Shield"
+
+
+#this can probably be done with something far more intelligent
+b = Watir::Browser.new
+b.goto "http://dashingforums.com"
+b.link(:href,/facebook/).click
+sleep(1)
+b.text_field(:name,"email").value = Conf.gmail
+b.text_field(:name,"pass").value = Conf.fpass
+b.button(:name,/login/).click
+b.goto("http://www.dashingforums.com/newreply.php?tid=915")
+b.text_field(:name,"message_new").value = post
+b.button(:name,"submit").click
+b.quit
