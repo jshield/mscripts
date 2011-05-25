@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+require "twitter"
+require "googl"
+require ENV["XDG_CONFIG_HOME"]+"/shemmesware/config"
+
+Twitter.configure do |config|
+  config.consumer_key = Conf.tconsumer_key
+  config.consumer_secret = Conf.tconsumer_secret
+  config.oauth_token = Conf.toauth_token
+  config.oauth_token_secret = Conf.toauth_token_secret
+end
+
+# Initialize your Twitter client
+client = Twitter::Client.new
+unless ARGV[0].nil? or ARGV[0].length > 140
+client.update ARGV[0]
+puts "you just tweeted: " + ARGV[0]
+else
+puts "either ARGV[0] was empty or greater than 140 characters"
+end
+
