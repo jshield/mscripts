@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+require "youtube_it"
+require (ENV["XDG_CONFIG_HOME"] ||( ENV["HOME"]+"/.config"))+"/shemmesware/config"
+puts ARGV.inspect
+
+def ask(q)
+  puts q
+  a=gets 
+  return a
+end
+
+uploader = YouTubeIt::Upload::VideoUpload.new(Conf.gmail, Conf.gpass, Conf.dev_key)
+uploader.upload File.open(ARGV[0]), :title => 'The Claw',
+                                     :description => 'Electromyostimulation of what is hopefully the Flexor Carpi Radialis of my right forearm',
+                                     :category => 'People',
+				     :keywords=>%w[shock awesome ems medical right forearm arm verity neurotrac]

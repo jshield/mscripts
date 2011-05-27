@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 require "twitter"
 require "googl"
-require ENV["XDG_CONFIG_HOME"]+"/shemmesware/config"
+require (ENV["XDG_CONFIG_HOME"]||(ENV["HOME"]+"/.config"))+"/shemmesware/config"
 
 Twitter.configure do |config|
   config.consumer_key = Conf.tconsumer_key
