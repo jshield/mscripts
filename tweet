@@ -17,7 +17,7 @@ unless ARGV[0].nil? or ARGV[0].length > 140
   puts "you just tweeted: " + ARGV[0]
   puts "hashtags:"
   ARGV[0].split(" ").each do |word|
-    puts word[0] if word[0] == "#"
+    puts word if word[0] == "#"
   end
 else
   puts "either ARGV[0] was empty or greater than 140 characters"
