@@ -1,0 +1,110 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*- #
+'''Application to download ogg/vorbis from Jamendo'''
+
+###
+#
+# Copyright (c) 2008, 2009 Leonardo Gastón De Luca leo[at]kde.org.ar
+# AKA: leo_rockway / Leo Rockway
+#
+# oggjam is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# oggjam is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <http://www.gnu.org/licenses/>
+# or write to the Free Software Foundation, Inc., 59 Temple Place,
+# Suite 330, Boston, MA  02111-1307  U.S.A.
+#
+###
+
+# For my friend Ali Gündüz, who loves IRC PMs ;-)
+
+# Additional Modifications made by James Alexander Shield 2011
+
+import re
+import sys
+import os
+import urllib.request, urllib.error, urllib.parse
+from optparse import OptionParser
+
+JAM_RE = re.compile(r'^(http://(www\.)jamendo\.com/(.){2,2}/album/)')
+OPENER = urllib.request.build_opener()
+INTERVAL = 1024 * 4
+
+def main():
+    '''Main function'''
+    try:
+        parser = OptionParser(usage = '''
+        $ %prog [Jamendo URL]
+        eg. %prog http://www.jamendo.com/en/album/####''', \
+        version = "%prog 0.9.2")
+        args = parser.parse_args()[1]
+        if len(args) < 1:
+            parser.error("Wrong number of arguments.")
+        elif JAM_RE.match(args[0].strip()) == None:
+            parser.error("This is not a valid Jamendo URL.")
+        else:
+            id_album = args[0].split('/')[5]
+            url_orig = "http://www.jamendo.com/en/download/album/" \
+            "%s/?output=contentonly" % id_album
+
+            url = "http://www.jamendo.com/get/album/id/album/" \
+            "archiverestricted/redirect/%s/" \
+            "?p2pnet=bittorrent&are=ogg3" % id_album
+
+            download(url_orig, url)
+    except KeyboardInterrupt:
+        print('\r')
+        sys.exit()
+
+def download(url_orig, url):
+    '''Downloads Jamendo album using the urls provided'''
+    try:
+        url_open = OPENER.open(url_orig.strip())
+        url_read = str(url_open.read())
+        url_read = url_read[url_read.index('mp32.torrent/'):]
+        url_read = url_read[:url_read.index('Jamendo')]
+        filename = urllib.parse.unquote(url_read)
+        filename = filename.replace('mp32.torrent/', "").replace(' -- ','')
+        print("""The following album will be downloaded: %s
+        Please wait...""" % filename)
+        remote_file = OPENER.open(url.strip())
+        local_file = open(filename+".zip", 'wb')
+        local_size = 0.0
+        remote_size = int(remote_file.info()['content-length'])
+        remote_size_kb = remote_size // 1024
+        while local_size < remote_size:
+            percent = 100 * local_size / remote_size
+            complete = ''.join(['=' * (int(percent) // 2)])
+            joint = ''.join([' ' * (50 - len(complete))])
+            sys.stdout.write('\r%6d/%d KiB [ %05.2f%%]|%s%s|'
+            % (local_size // 1024, remote_size_kb, float(percent),\
+            complete, joint))
+            buffering = remote_file.read(INTERVAL)
+            local_file.write(buffering)
+            local_size += INTERVAL
+            sys.stdout.flush()
+        equals = '=' * 49
+        sys.stdout.write('\r%6d/%d KiB [100.00%%]|%s|\n' \
+        % (remote_size_kb, remote_size_kb, equals)) #ugly hack
+        sys.stdout.flush()
+        remote_file.close()
+        local_file.close()
+        print("Download complete: %s.zip" % (filename))
+        print("Extracting tunes")
+        os.mkdir(filename)
+        os.chdir(filename)
+        os.system("unzip \"../" + filename+"\"") 
+    except KeyboardInterrupt:
+        print('\r')
+        sys.exit()
+
+if __name__ == "__main__":
+    main()
